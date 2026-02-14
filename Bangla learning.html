@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sajjad Learning App for Nadim</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <style>
+        /* -----------------------------------------------------------
+           GLOBAL VARIABLES & RESET
+           ----------------------------------------------------------- */
+        :root {
+            --primary-color: #6C63FF;
+            --secondary-color: #FF6584;
+            --accent-color: #00E676;
+            --dark-bg: #1A1A2E;
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-main: #ffffff;
+            --text-muted: #e0e0e0;
+            --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Hind Siliguri', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* -----------------------------------------------------------
+           LIVE WALLPAPER (CANVAS)
+           ----------------------------------------------------------- */
+        #live-wallpaper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        /* -----------------------------------------------------------
+           AUTHENTICATION SCREEN (MODIFIED FOR WALLPAPER VISIBILITY)
+           ----------------------------------------------------------- */
+        #auth-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            /* Transparency increased to show wallpaper */
+            background: rgba(0,0,0,0.5); 
+            backdrop-filter: blur(5px);
+            z-index: 10002; display: flex; justify-content: center; align-items: center;
+        }
+        .auth-box {
+            background: rgba(255, 255, 255, 0.1); border: 1px solid var(--glass-border);
+            padding: 30px; border-radius: 20px; width: 90%; max-width: 350px;
+            text-align: center; box-shadow: 0 0 20px rgba(108, 99, 255, 0.3);
+        }
+        .auth-input {
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none;
+            background: rgba(255,255,255,0.9); outline: none; font-size: 1rem;
+        }
+        .auth-btn {
+            width: 100%; padding: 12px; background: var(--primary-color); color: white;
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;
+            font-size: 1.1rem; transition: 0.3s;
+        }
+        .auth-btn:hover { background: var(--secondary-color); }
+        .switch-auth { margin-top: 15px; cursor: pointer; color: var(--accent-color); font-size: 0.9rem; text-decoration: underline; }
+
+        /* -----------------------------------------------------------
+           BLOCKED SCREEN
+           ----------------------------------------------------------- */
+        #blocked-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; z-index: 10005; display: none;
+            flex-direction: column; justify-content: center; align-items: center; text-align: center;
+            padding: 20px;
+        }
+
+        /* -----------------------------------------------------------
+           SPLASH SCREEN ANIMATION
+           ----------------------------------------------------------- */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+            transition: opacity 1s ease-out;
+        }
+
+        .splash-content h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #FF6584, #6C63FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            animation: bounceIn 1.5s;
+        }
+
+        .splash-content p {
+            font-size: 1.2rem;
+            color: #fff;
+            opacity: 0;
+            animation: fadeInUp 1s 1s forwards;
+        }
+
+        /* -----------------------------------------------------------
+           MAIN LAYOUT & CONTAINER
+           ----------------------------------------------------------- */
+        #app-container {
+            display: none; 
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 100px;
+            position: relative;
+        }
+
+        /* Header Section with Logo */
+        header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* NEW: LOGO STYLES */
+        .app-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border-radius: 50%;
+            border: 3px solid var(--primary-color);
+            margin-bottom: 10px;
+            background: white;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: rotateBg 10s linear infinite;
+        }
+
+        @keyframes rotateBg { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .date-display {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        /* User & Points Section */
+        .user-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.4);
+            padding: 15px 25px;
+            border-radius: 50px;
+            margin-bottom: 25px;
+            border: 1px solid #333;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+        }
+
+        .points-badge {
+            background: #FFD700;
+            color: #000;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* -----------------------------------------------------------
+           NOTICE BOARD
+           ----------------------------------------------------------- */
+        #notice-board {
+            background: linear-gradient(45deg, #ff4757, #ff6b81);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(255, 71, 87, 0.3);
+            border-left: 6px solid #fff;
+            display: none;
+            animation: pulseNotice 2s infinite;
+        }
+
+        @keyframes pulseNotice {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .notice-title {
+            font-weight: bold;
+            border-bottom: 1px solid rgba(255,255,255,0.4);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* -----------------------------------------------------------
+           NAVIGATION GRID
+           ----------------------------------------------------------- */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+
+        .nav-card:active {
+            transform: scale(0.95);
+        }
+
+        .nav-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: block;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+        }
+
+        .exam-card {
+            grid-column: span 2;
+            background: linear-gradient(45deg, rgba(108, 99, 255, 0.4), rgba(255, 101, 132, 0.4));
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        /* -----------------------------------------------------------
+           FULL PAGE VIEW (NEW - FOR SEPARATE PAGE FEEL)
+           ----------------------------------------------------------- */
+        #full-page-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1A1A2E; /* Same as body bg to simulate new page */
+            z-index: 5000;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .back-btn:hover { background: var(--secondary-color); }
+
+        /* Learning Grid items inside Full Page */
+        .items-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 20px;
+            padding-bottom: 50px;
+        }
+
+        .learn-box {
+            background: #fff;
+            color: #333;
+            border-radius: 15px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: 0.2s;
+        }
+
+        .learn-box:hover {
+            transform: scale(1.1);
+            background: #f0f0f0;
+        }
+
+        .learn-box span {
+            font-size: 1rem;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .color-box {
+            height: 100px;
+            border-radius: 50%;
+            border: 4px solid white;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .color-box:hover { transform: scale(1.1); }
+
+        /* -----------------------------------------------------------
+           FOOTER & INFO
+           ----------------------------------------------------------- */
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            opacity: 0.9;
+            font-size: 0.85rem;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            background-color: #00E676;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px #00E676;
+        }
+
+        .admin-trigger {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--primary-color);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .admin-trigger:hover {
+            background: var(--primary-color);
+        }
+
+        /* SOCIAL BUTTONS */
+        .social-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        .social-btn:hover { transform: translateY(-3px); }
+        .btn-whatsapp { background: #25D366; }
+        .btn-youtube { background: #FF0000; }
+        .btn-facebook { background: #1877F2; } /* Added Facebook Color */
+
+        /* -----------------------------------------------------------
+           ADMIN PANEL (OVERLAY)
+           ----------------------------------------------------------- */
+        #admin-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f0f1a;
+            z-index: 10000;
+            display: none;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .admin-card {
+            background: #1f1f2e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .admin-input {
+            width: 100%;
+            background: #2a2a3d;
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: 0.2s;
+        }
+        .btn-primary { background: var(--primary-color); }
+        .btn-danger { background: #ff4757; }
+        .btn-success { background: var(--accent-color); color: #000; }
+
+        /* -----------------------------------------------------------
+           MODAL (EXAM)
+           ----------------------------------------------------------- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1A1A2E; /* Full screen for exam */
+            z-index: 6000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-box {
+            background: white;
+            color: #333;
+            width: 90%;
+            max-width: 400px;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(108, 99, 255, 0.5);
+            animation: zoomIn 0.3s;
+        }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .option-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 50px;
+            padding: 16px;
+            position: fixed;
+            z-index: 10001;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 1rem;
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="live-wallpaper"></canvas>
+
+    <div id="auth-overlay">
+        <div class="auth-box">
+            <h2 id="auth-title" style="margin-bottom:20px; color:white;">Login</h2>
+            <div id="signup-fields" style="display:none;">
+                <input type="text" id="reg-name" class="auth-input" placeholder="আপনার নাম">
+                <input type="number" id="reg-phone" class="auth-input" placeholder="মোবাইল নম্বর">
+            </div>
+            <input type="email" id="auth-email" class="auth-input" placeholder="ইমেইল (@gmail.com)">
+            <input type="password" id="auth-pass" class="auth-input" placeholder="পাসওয়ার্ড">
+            <button class="auth-btn" onclick="fireAuth.submit()">Login</button>
+            <div class="switch-auth" onclick="fireAuth.toggle()">একাউন্ট নেই? সাইনআপ করুন</div>
+            <div id="auth-loading" style="display:none; color:white; margin-top:10px;">অপেক্ষা করুন...</div>
+        </div>
+    </div>
+
+    <div id="blocked-overlay">
+        <i class="fas fa-ban fa-5x" style="color: #ff4757; margin-bottom: 20px;"></i>
+        <h1 style="color: white; font-size: 2rem;">You are Blocked!</h1>
+        <p style="color: #aaa; margin: 10px 0;">Reason: <span id="block-reason-text" style="color: var(--secondary-color);">Violation</span></p>
+        <p style="font-size: 0.8rem; color: #888;">By Organizer</p>
+        <button class="btn btn-primary" onclick="fireAuth.logout()" style="margin-top: 30px;">Logout</button>
+    </div>
+
+    <div id="splash-screen">
+        <div class="splash-content text-center">
+            <h1>চলো নাদিম তোমাকে বাংলা শিখাই</h1>
+            <p>সাজ্জাদের তৈরি করা অ্যাপস দিয়ে</p>
+            <div style="margin-top: 20px;">
+                <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--secondary-color);"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <div id="notice-board">
+            <div class="notice-title">
+                <i class="fas fa-bullhorn"></i> নোটিশ
+            </div>
+            <p id="notice-text">এখানে নোটিশ দেখা যাবে...</p>
+        </div>
+
+        <header>
+            <img src="https://cdn-icons-png.flaticon.com/512/3976/3976625.png" alt="App Logo" class="app-logo" id="header-logo">
+            
+            <h2 id="app-title-display">চলো বাংলা শিখি</h2>
+            <div class="date-display" id="date-display">...</div>
+            <div style="position: absolute; top: 15px; right: 15px;">
+                <button onclick="fireAuth.logout()" style="background:transparent; border:none; color:white;"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
+
+        <div class="user-stats">
+            <div class="stat-item">
+                <i class="fas fa-user-graduate" style="color: var(--secondary-color);"></i>
+                <span>ছাত্র: <strong id="user-name-display">...</strong></span>
+            </div>
+            <div class="stat-item">
+                <span class="points-badge">
+                    <i class="fas fa-star"></i> <span id="points-val">0</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="nav-grid">
+            <div class="nav-card" onclick="app.openPage('shorborno')">
+                <span class="nav-icon" style="color: #FF9F43;">অ</span>
+                <h3>স্বরবর্ণ</h3>
+            </div>
+            <div class="nav-card" onclick="app.openPage('benjonborno')">
+                <span class="nav-icon" style="color: #54a0ff;">ক</span>
+                <h3>ব্যঞ্জনবর্ণ</h3>
+            </div>
+            <div class="nav-card" onclick="app.openPage('prani')">
+                <span class="nav-icon">🦁</span>
+                <h3>প্রাণী</h3>
+            </div>
+            <div class="nav-card" onclick="app.openPage('rong')">
+                <span class="nav-icon">🎨</span>
+                <h3>রং</h3>
+            </div>
+            <div class="nav-card exam-card" onclick="app.startExam()">
+                <span class="nav-icon">📝</span>
+                <h3>সাপ্তাহিক পরীক্ষা</h3>
+                <small style="color: white; opacity: 0.8;">প্রতিদিন নতুন প্রশ্ন</small>
+            </div>
+        </div>
+
+        <footer>
+            <h3>DEVELOPER SAJJAD</h3>
+            <p>MADE FOR LEARNING FOR NADIM</p>
+            <p style="margin-top: 5px;">STATUS: <span class="status-dot"></span> Active</p>
+            
+            <button class="admin-trigger" onclick="admin.open()">
+                <i class="fas fa-shield-alt"></i> Admin Panel
+            </button>
+
+            <div style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                <a href="https://wa.me/8801700000000?text=App%20Banate%20Chai" target="_blank" class="social-btn btn-whatsapp">
+                    <i class="fab fa-whatsapp"></i> App Banate Chai
+                </a>
+                <br>
+                <a href="https://www.youtube.com/@YourChannelHandle" target="_blank" class="social-btn btn-youtube">
+                    <i class="fab fa-youtube"></i> Subscribe Channel
+                </a>
+                <br>
+                <a href="https://facebook.com" target="_blank" class="social-btn btn-facebook" id="fb-link-btn">
+                    <i class="fab fa-facebook-f"></i> Facebook Page
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <div id="full-page-view">
+        <div class="page-header">
+            <h2 id="page-title" style="color: var(--accent-color);">TITLE</h2>
+            <button class="back-btn" onclick="app.closePage()">
+                <i class="fas fa-arrow-left"></i> ফিরে যান
+            </button>
+        </div>
+        <div id="page-content" class="items-container animate__animated animate__fadeInUp">
+            </div>
+    </div>
+
+    <div id="exam-modal" class="modal-overlay">
+        <div style="position:absolute; top: 20px; left: 20px;">
+             <button class="back-btn" onclick="app.closeExam()"><i class="fas fa-arrow-left"></i> বের হন</button>
+        </div>
+        <div class="modal-box">
+            <div style="margin-bottom:10px;">প্রশ্ন: <span id="q-counter">1</span></div>
+            <h3 id="exam-q-text" style="margin-bottom: 20px; color: var(--primary-color); font-size: 1.5rem;">প্রশ্ন লোড হচ্ছে...</h3>
+            <div id="exam-options-container"></div>
+            <p id="exam-feedback" style="margin-top: 15px; font-weight: bold; min-height: 20px;"></p>
+        </div>
+    </div>
+
+    <div id="admin-panel">
+        <div class="admin-header">
+            <h2><i class="fas fa-user-secret"></i> Admin Control (Sajjad)</h2>
+            <button class="btn btn-danger" onclick="admin.close()">EXIT</button>
+        </div>
+
+        <div class="admin-card">
+            <h3>👤 ইউজার সিলেক্ট করুন</h3>
+            <select id="admin-user-select" class="admin-input" onchange="admin.userSelected()">
+                <option value="all">সব ইউজার (All)</option>
+            </select>
+            <button class="btn btn-primary" onclick="admin.fetchUsers()"><i class="fas fa-sync"></i> রিফ্রেশ লিস্ট</button>
+        </div>
+
+        <div class="admin-card">
+            <h3>📢 নোটিশ পাঠান</h3>
+            <textarea id="admin-notice-input" class="admin-input" rows="3" placeholder="নোটিশ লিখুন..."></textarea>
+            <button class="btn btn-success" onclick="admin.sendNotice()">নোটিশ পাঠান</button>
+        </div>
+
+        <div class="admin-card">
+            <h3>🚫 ব্লক ম্যানেজমেন্ট</h3>
+            <input type="text" id="block-reason" class="admin-input" placeholder="ব্লক করার কারণ (Reason)">
+            <select id="block-duration" class="admin-input">
+                <option value="permanent">পারমানেন্ট ব্লক</option>
+                <option value="1">১ মিনিটের জন্য ব্লক (Test)</option>
+                <option value="60">১ ঘন্টার জন্য ব্লক</option>
+                <option value="1440">১ দিনের জন্য ব্লক</option>
+            </select>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-danger" onclick="admin.blockUser(true)">ব্লক করুন</button>
+                <button class="btn btn-success" onclick="admin.blockUser(false)">আনব্লক করুন</button>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <h3>💎 পয়েন্ট ম্যানেজমেন্ট</h3>
+            <input type="number" id="admin-point-input" class="admin-input" placeholder="পরিমাণ লিখুন">
+            <button class="btn btn-primary" onclick="admin.modifyPoints('add')">যোগ করুন (+)</button>
+        </div>
+
+        <div class="admin-card">
+            <h3>⚙️ অ্যাপ সেটিংস</h3>
+            <label>অ্যাপের নাম:</label>
+            <input type="text" id="admin-app-name" class="admin-input" placeholder="নতুন নাম দিন">
+            <button class="btn btn-primary" onclick="admin.updateAppName()">নাম পরিবর্তন করুন</button>
+            <br><br>
+            <label>লোগো লিংক:</label>
+            <input type="text" id="admin-logo-link" class="admin-input" placeholder="লোগোর লিংক দিন">
+            <button class="btn btn-primary" onclick="admin.updateLogo()">লোগো চেঞ্জ করুন</button>
+            <br><br>
+            <label>ফেসবুক লিংক:</label>
+            <input type="text" id="admin-fb-link" class="admin-input" placeholder="ফেসবুক প্রোফাইল লিংক">
+            <button class="btn btn-primary" onclick="admin.updateFacebook()">ফেসবুক সেট করুন</button>
+        </div>
+    </div>
+
+    <div id="toast">Notification</div>
+
+    <script type="module">
+        // -------------------------------------------------------------
+        // FIREBASE SETUP
+        // -------------------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // ============================================
+        // ⚠️ আপনার ফায়ারবেস কনফিগারেশন ⚠️
+        // ============================================
+        const firebaseConfig = {
+  apiKey: "AIzaSyDPPYf8aCVU46n2ei2l2vTuIlJ3HORXC5c",
+  authDomain: "learning-app-92aba.firebaseapp.com",
+  databaseURL: "https://learning-app-92aba-default-rtdb.firebaseio.com",
+  projectId: "learning-app-92aba",
+  storageBucket: "learning-app-92aba.firebasestorage.app",
+  messagingSenderId: "657011397216",
+  appId: "1:657011397216:web:79d39432aa4ddb1e82a905",
+  measurementId: "G-VBZV1K759F"
+};
+
+        const appBase = initializeApp(firebaseConfig);
+        const auth = getAuth(appBase);
+        const db = getFirestore(appBase);
+
+        // GLOBAL VARIABLES
+        let currentUser = null;
+        let userDataUnsub = null;
+        let userListCache = [];
+
+        // -------------------------------------------------------------
+        // AUTHENTICATION LOGIC
+        // -------------------------------------------------------------
+        window.fireAuth = {
+            isSignup: false,
+            toggle: () => {
+                const fa = window.fireAuth;
+                fa.isSignup = !fa.isSignup;
+                document.getElementById('signup-fields').style.display = fa.isSignup ? 'block' : 'none';
+                document.getElementById('auth-title').innerText = fa.isSignup ? 'Sign Up' : 'Login';
+                document.querySelector('.auth-btn').innerText = fa.isSignup ? 'Sign Up' : 'Login';
+                document.querySelector('.switch-auth').innerText = fa.isSignup ? 'Already have an account? Login' : 'একাউন্ট নেই? সাইনআপ করুন';
+            },
+            submit: async () => {
+                const email = document.getElementById('auth-email').value;
+                const pass = document.getElementById('auth-pass').value;
+                const name = document.getElementById('reg-name').value;
+                const phone = document.getElementById('reg-phone').value;
+                const loading = document.getElementById('auth-loading');
+
+                if(!email || !pass) return alert("ইমেইল এবং পাসওয়ার্ড দিন");
+
+                loading.style.display = 'block';
+                try {
+                    if(window.fireAuth.isSignup) {
+                        if(!name || !phone) throw new Error("নাম এবং নাম্বার প্রয়োজন");
+                        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                        // Save User Data
+                        await setDoc(doc(db, "users", cred.user.uid), {
+                            name: name,
+                            phone: phone,
+                            email: email,
+                            points: 0,
+                            blocked: false,
+                            blockReason: "",
+                            blockUntil: null,
+                            notice: ""
+                        });
+                        alert("একাউন্ট তৈরি হয়েছে!");
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, pass);
+                    }
+                } catch (e) {
+                    alert("সমস্যা: " + e.message);
+                    loading.style.display = 'none';
+                }
+            },
+            logout: () => {
+                signOut(auth).then(() => {
+                    location.reload();
+                });
+            }
+        };
+
+        // AUTH STATE OBSERVER
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('splash-screen').style.display = 'flex';
+                
+                // Realtime Data Listener
+                userDataUnsub = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+                    if(docSnap.exists()) {
+                        const data = docSnap.data();
+                        handleUserStatus(data);
+                    }
+                });
+
+                // Start App
+                app.init();
+            } else {
+                currentUser = null;
+                if(userDataUnsub) userDataUnsub();
+                document.getElementById('auth-overlay').style.display = 'flex';
+                document.getElementById('app-container').style.display = 'none';
+                document.getElementById('splash-screen').style.display = 'none';
+            }
+        });
+
+        function handleUserStatus(data) {
+            const blockedScreen = document.getElementById('blocked-overlay');
+            const appContainer = document.getElementById('app-container');
+            const splash = document.getElementById('splash-screen');
+
+            // Check Block Time
+            const now = Date.now();
+            if(data.blocked && data.blockUntil && now > data.blockUntil) {
+                updateDoc(doc(db, "users", currentUser.uid), {
+                    blocked: false, blockUntil: null, blockReason: ""
+                });
+                return;
+            }
+
+            if(data.blocked) {
+                appContainer.style.display = 'none';
+                splash.style.display = 'none';
+                blockedScreen.style.display = 'flex';
+                document.getElementById('block-reason-text').innerText = data.blockReason || "No Reason";
+            } else {
+                blockedScreen.style.display = 'none';
+                setTimeout(() => splash.style.display = 'none', 2000);
+                appContainer.style.display = 'block';
+
+                document.getElementById('user-name-display').innerText = data.name;
+                document.getElementById('points-val').innerText = data.points;
+                window.app.points = data.points;
+
+                const noticeBox = document.getElementById('notice-board');
+                if(data.notice && data.notice.trim() !== "") {
+                    noticeBox.style.display = 'block';
+                    document.getElementById('notice-text').innerText = data.notice;
+                } else {
+                    noticeBox.style.display = 'none';
+                }
+            }
+        }
+
+
+        // -------------------------------------------------------------
+        // MAIN APP LOGIC
+        // -------------------------------------------------------------
+        const APP_CONFIG = {
+            adminPass: "scanff11", 
+        };
+
+        const DATA = {
+            shorborno: ['অ','আ','ই','ঈ','উ','ঊ','ঋ','এ','ঐ','ও','ঔ'],
+            benjonborno: ['ক','খ','গ','ঘ','ঙ','চ','ছ','জ','ঝ','ঞ','ট','ঠ','ড','ঢ','ণ','ত','থ','দ','ধ','ন','প','ফ','ব','ভ','ম','য','র','ল','শ','ষ','স','হ','ড়','ঢ়','য়','ৎ','ং','ঃ','ঁ'],
+            prani: [{n:'বাঘ', i:'🐅'}, {n:'সিংহ', i:'🦁'}, {n:'হাতি', i:'🐘'}, {n:'ঘোড়া', i:'🐎'}, {n:'গরু', i:'🐄'}, {n:'ছাগল', i:'🐐'}, {n:'বিড়াল', i:'🐈'}, {n:'কুকুর', i:'🐕'}],
+            rong: [{n:'লাল', c:'red'}, {n:'নীল', c:'blue'}, {n:'সবুজ', c:'green'}, {n:'হলুদ', c:'yellow'}, {n:'কালো', c:'black'}, {n:'সাদা', c:'white'}, {n:'কমলা', c:'orange'}, {n:'বেগুনি', c:'purple'}]
+        };
+
+        // বড় প্রশ্ন ব্যাংক
+        let questionBank = [
+            {q: "বাংলাদেশের জাতীয় পশু কোনটি?", o: ["হাতি", "বাঘ", "সিংহ"], a: "বাঘ"},
+            {q: "ফলের রাজা কে?", o: ["আম", "কাঁঠাল", "লিচু"], a: "আম"},
+            {q: "আমাদের জাতীয় ফুল কোনটি?", o: ["গোলাপ", "শাপলা", "জবা"], a: "শাপলা"},
+            {q: "রংধনুতে কয়টি রং থাকে?", o: ["৫টি", "৭টি", "১০টি"], a: "৭টি"},
+            {q: "সূর্য কোন দিকে ওঠে?", o: ["পশ্চিম", "উত্তর", "পূর্ব"], a: "পূর্ব"},
+            {q: "পাখির রাজা কে?", o: ["চড়ুই", "ঈগল", "দোয়েল"], a: "ঈগল"},
+            {q: "রাজা হাঁস দেখতে কেমন?", o: ["সাদা", "কালো", "লাল"], a: "সাদা"},
+            {q: "বাঘ কি খায়?", o: ["ঘাস", "মাংস", "ফল"], a: "মাংস"}
+        ];
+
+        window.app = {
+            points: 0,
+            questionCount: 0,
+            init: () => {
+                document.getElementById('date-display').innerText = new Date().toLocaleDateString('bn-BD');
+                startWallpaper();
+            },
+            
+            // OPEN SEPARATE PAGE
+            openPage: (type) => {
+                const fullPage = document.getElementById('full-page-view');
+                const contentDiv = document.getElementById('page-content');
+                const titleDiv = document.getElementById('page-title');
+                
+                fullPage.style.display = 'flex';
+                document.getElementById('app-container').style.display = 'none'; // Hide main menu
+                
+                contentDiv.innerHTML = '';
+                titleDiv.innerText = type.toUpperCase();
+
+                if(type === 'shorborno' || type === 'benjonborno') {
+                    DATA[type].forEach(char => {
+                        let div = document.createElement('div');
+                        div.className = 'learn-box'; div.innerHTML = char;
+                        div.onclick = () => utils.speak(char);
+                        contentDiv.appendChild(div);
+                    });
+                } else if (type === 'prani') {
+                    DATA.prani.forEach(p => {
+                        let div = document.createElement('div');
+                        div.className = 'learn-box'; div.innerHTML = `<div>${p.i}</div><span>${p.n}</span>`;
+                        div.onclick = () => utils.speak(p.n);
+                        contentDiv.appendChild(div);
+                    });
+                } else if (type === 'rong') {
+                    DATA.rong.forEach(r => {
+                        let div = document.createElement('div');
+                        div.className = 'color-box'; div.style.backgroundColor = r.c;
+                        div.onclick = () => utils.speak(r.n);
+                        contentDiv.appendChild(div);
+                    });
+                }
+            },
+
+            closePage: () => {
+                document.getElementById('full-page-view').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+            },
+
+            // CONTINUOUS EXAM LOGIC
+            startExam: () => {
+                document.getElementById('exam-modal').style.display = 'flex';
+                document.getElementById('app-container').style.display = 'none'; // Full screen feel
+                app.loadNextQuestion();
+            },
+
+            loadNextQuestion: () => {
+                app.questionCount++;
+                document.getElementById('q-counter').innerText = app.questionCount;
+                
+                const q = questionBank[Math.floor(Math.random() * questionBank.length)];
+                document.getElementById('exam-q-text').innerText = q.q;
+                
+                const optContainer = document.getElementById('exam-options-container');
+                optContainer.innerHTML = '';
+                document.getElementById('exam-feedback').innerText = '';
+                
+                // Shuffle options
+                let opts = [...q.o].sort(() => Math.random() - 0.5);
+
+                opts.forEach(opt => {
+                    let btn = document.createElement('button');
+                    btn.className = 'option-btn'; btn.innerText = opt;
+                    btn.onclick = () => app.checkExamAnswer(opt, q.a);
+                    optContainer.appendChild(btn);
+                });
+            },
+
+            checkExamAnswer: (selected, correct) => {
+                const fb = document.getElementById('exam-feedback');
+                if(selected === correct) {
+                    fb.innerText = "সঠিক উত্তর! ১০ পয়েন্ট যোগ হয়েছে।"; 
+                    fb.style.color = "green";
+                    if(currentUser) updateDoc(doc(db, "users", currentUser.uid), { points: window.app.points + 10 });
+                    utils.speak("সঠিক উত্তর");
+                } else {
+                    fb.innerText = "ভুল উত্তর! সঠিক ছিল: " + correct; 
+                    fb.style.color = "red";
+                    utils.speak("ভুল উত্তর");
+                }
+
+                // CONTINUOUS: Load next question after delay
+                setTimeout(() => {
+                    app.loadNextQuestion();
+                }, 1500); // 1.5 seconds delay
+            },
+
+            closeExam: () => {
+                document.getElementById('exam-modal').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                app.questionCount = 0;
+            }
+        };
+
+        const utils = {
+            speak: (text) => {
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'bn-BD'; window.speechSynthesis.speak(u);
+            },
+            showToast: (msg) => {
+                const x = document.getElementById("toast");
+                x.innerText = msg; x.className = "show";
+                setTimeout(() => { x.className = x.className.replace("show", ""); }, 3000);
+            }
+        };
+
+        // -------------------------------------------------------------
+        // ADMIN LOGIC (UPDATED WITH POINTS VIEW)
+        // -------------------------------------------------------------
+        window.admin = {
+            open: () => {
+                const pass = prompt("Enter Admin Password:");
+                if(pass === APP_CONFIG.adminPass) {
+                    document.getElementById('admin-panel').style.display = 'block';
+                    admin.fetchUsers();
+                } else {
+                    utils.showToast("ভুল পাসওয়ার্ড!");
+                }
+            },
+            close: () => document.getElementById('admin-panel').style.display = 'none',
+            
+            fetchUsers: async () => {
+                const select = document.getElementById('admin-user-select');
+                select.innerHTML = '<option value="all">সব ইউজার (All)</option>';
+                const snap = await getDocs(collection(db, "users"));
+                userListCache = [];
+                snap.forEach(d => {
+                    const u = {id: d.id, ...d.data()};
+                    userListCache.push(u);
+                    const opt = document.createElement('option');
+                    opt.value = u.id;
+                    // SHOW NAME, PHONE AND POINTS
+                    opt.innerText = `${u.name} - 📱${u.phone} - ⭐${u.points || 0}`;
+                    select.appendChild(opt);
+                });
+                utils.showToast("ইউজার লিস্ট রিফ্রেশ হয়েছে");
+            },
+
+            sendNotice: async () => {
+                const target = document.getElementById('admin-user-select').value;
+                const msg = document.getElementById('admin-notice-input').value;
+                if(!msg) return alert("নোটিশ লিখুন");
+
+                if(target === 'all') {
+                    userListCache.forEach(u => updateDoc(doc(db, "users", u.id), { notice: msg }));
+                    utils.showToast("সবাইকে পাঠানো হয়েছে");
+                } else {
+                    await updateDoc(doc(db, "users", target), { notice: msg });
+                    utils.showToast("নোটিশ পাঠানো হয়েছে");
+                }
+            },
+
+            blockUser: async (doBlock) => {
+                const target = document.getElementById('admin-user-select').value;
+                const reason = document.getElementById('block-reason').value;
+                const duration = document.getElementById('block-duration').value;
+                
+                if(target === 'all') return alert("নির্দিষ্ট ইউজার সিলেক্ট করুন");
+
+                let data = { blocked: doBlock, blockReason: doBlock ? reason : "" };
+                
+                if(doBlock && duration !== 'permanent') {
+                    const mins = parseInt(duration);
+                    data.blockUntil = Date.now() + (mins * 60 * 1000);
+                    data.blockReason += ` (${mins} মিনিট)`;
+                } else {
+                    data.blockUntil = null;
+                }
+
+                await updateDoc(doc(db, "users", target), data);
+                utils.showToast(doBlock ? "ব্লক করা হয়েছে" : "আনব্লক করা হয়েছে");
+            },
+
+            modifyPoints: async (action) => {
+                const target = document.getElementById('admin-user-select').value;
+                const val = parseInt(document.getElementById('admin-point-input').value);
+                if(target === 'all') return alert("নির্দিষ্ট ইউজার সিলেক্ট করুন");
+                
+                const userRef = doc(db, "users", target);
+                const snap = await getDoc(userRef);
+                let current = snap.data().points || 0;
+                await updateDoc(userRef, { points: current + val });
+                utils.showToast("পয়েন্ট আপডেট হয়েছে");
+                admin.fetchUsers(); // Refresh list to show new points
+            },
+
+            updateAppName: () => {
+                document.getElementById('app-title-display').innerText = document.getElementById('admin-app-name').value;
+                utils.showToast("নাম পরিবর্তন হয়েছে (Local)");
+            },
+            updateLogo: () => {
+                const link = document.getElementById('admin-logo-link').value;
+                if(link) {
+                    document.getElementById('header-logo').src = link;
+                    utils.showToast("লোগো চেঞ্জ হয়েছে (Local)");
+                }
+            },
+            // NEW FUNCTION FOR FACEBOOK
+            updateFacebook: () => {
+                const link = document.getElementById('admin-fb-link').value;
+                if(link) {
+                    document.getElementById('fb-link-btn').href = link;
+                    utils.showToast("ফেসবুক লিংক সেট হয়েছে (Local)");
+                }
+            }
+        };
+
+        // -------------------------------------------------------------
+        // LIVE WALLPAPER ENGINE
+        // -------------------------------------------------------------
+        function startWallpaper() {
+            const canvas = document.getElementById('live-wallpaper');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let particles = [];
+
+            function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+
+            class Particle {
+                constructor() { this.x = Math.random() * width; this.y = Math.random() * height; this.vx = (Math.random() - 0.5); this.vy = (Math.random() - 0.5); this.size = Math.random() * 3; }
+                update() { this.x += this.vx; this.y += this.vy; if (this.x < 0 || this.x > width) this.vx *= -1; if (this.y < 0 || this.y > height) this.vy *= -1; }
+                draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill(); }
+            }
+
+            function initParticles() { particles = []; for (let i = 0; i < 50; i++) particles.push(new Particle()); }
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update(); particles[i].draw();
+                    for (let j = i; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x; const dy = particles[i].y - particles[j].y; const d = Math.sqrt(dx * dx + dy * dy);
+                        if (d < 100) { ctx.beginPath(); ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 - d/1000})`; ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke(); }
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+            window.addEventListener('resize', resize); resize(); initParticles(); animate();
+        }
+    </script>
+</body>
+</html>
